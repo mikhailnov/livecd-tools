@@ -445,7 +445,7 @@ class SelinuxConfig(KickstartConfig):
         if not os.path.exists(self.path("/sbin/setfiles")):
             return
 
-        self.call(["/sbin/setfiles", "-p", "-e", "/proc", "-e", "/sys", "-e", "/dev", selinux.selinux_file_context_path(), "/"])
+        subprocess.call(["/sbin/setfiles", "-p", "-e", "/proc", "-e", "/sys", "-e", "/dev", selinux.selinux_file_context_path(), "/"], preexec_fn=self.chroot)
 
     def apply(self, ksselinux):
         selinux_config = "/etc/selinux/config"
