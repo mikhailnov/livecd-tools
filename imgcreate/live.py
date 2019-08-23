@@ -622,7 +622,7 @@ menu separator
                                            liveargs = kern_opts,
                                            long = "Install " + long + " in basic graphics mode",
                                            short = "basic" + index,
-                                           extra = "xdriver=vesa plymouth.enable=0 nokmsboot",
+                                           extra = "xdriver=vesa plymouth.enable=0 nomodeset vga=792",
                                            help = "Try this option out if you're having trouble installing.",
                                            index = index))
             kern_opts = kernel_options
@@ -840,7 +840,7 @@ search --no-floppy --set=root -l '%(isolabel)s'
             cfg += self.__get_efi_image_stanza(fslabel = self.fslabel,
                                                liveargs = kernel_options,
                                                long = "Install " + long + " in basic graphics mode",
-                                               extra = "install nomodeset plymouth.enable=0", index = index)
+                                               extra = "install nomodeset plymouth.enable=0 vga=792", index = index)
 
             break
 
