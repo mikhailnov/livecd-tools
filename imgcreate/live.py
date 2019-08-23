@@ -314,7 +314,7 @@ class LiveImageCreatorBase(LoopImageCreator):
     def __create_iso(self, isodir):
         iso = self._outdir + "/" + self.name + ".iso"
 
-        args = ["/usr/bin/mkisofs",
+        args = ["/usr/bin/genisoimage",
                 "-J", "-r",
                 "-hide-rr-moved", "-hide-joliet-trans-tbl",
                 "-V", self.fslabel,
