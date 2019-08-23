@@ -726,7 +726,7 @@ menu end
         if not self._efiarch:
             # for most things, we want them named boot$efiarch
             efiarch = {"i386": "IA32", "x86_64": "X64"}
-            self._efiarch = efiarch[rpmUtils.arch.getBaseArch()]
+            self._efiarch = efiarch[getBaseArch()]
         return self._efiarch
 
     def __copy_efi_files(self, isodir):
