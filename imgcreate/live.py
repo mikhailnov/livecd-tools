@@ -739,7 +739,7 @@ menu end
         """
         fail = False
         missing = []
-        files = [("/boot/efi/EFI/*/grub2-efi/shim.efi", "/EFI/BOOT/BOOT%s.efi" % (self.efiarch,)),
+        files = [("/boot/efi/EFI/*/shim.efi", "/EFI/BOOT/BOOT%s.efi" % (self.efiarch,)),
                  ("/boot/efi/EFI/*/grub2-efi/grubcd.efi", "/EFI/BOOT/grubx64.efi"),
                  ("/boot/grub2/themes/rosa/*", "/EFI/BOOT/themes/rosa/"),
                  ("/boot/grub2/fonts/unicode.pf2", "/EFI/BOOT/fonts/"),
