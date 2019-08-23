@@ -236,8 +236,8 @@ class LiveImageCreatorBase(LoopImageCreator):
 
     def _generate_efiboot(self, isodir):
         """Generate EFI boot images."""
-        if not glob.glob(self._instroot+"/boot/efi/EFI/*/shim.efi"):
-            logging.error("Missing shim.efi, skipping efiboot.img creation.")
+        if not glob.glob(self._instroot+"/boot/efi/EFI/*/BOOT*.efi"):
+            logging.error("Missing BOOT*.efi, skipping efiboot.img creation.")
             return
 
         # XXX-BCL: does this need --label?
@@ -736,13 +736,13 @@ menu end
         """ Copy the efi files into /EFI/BOOT/
             If any of them are missing, return False.
             requires:
-              shim.efi
+              BOOT*.efi
               grub.efi
               fonts/unicode.pf2
         """
         fail = False
         missing = []
-        files = [("/boot/efi/EFI/*/shim.efi", "/EFI/BOOT/BOOT%s.efi" % (self.efiarch,)),
+        files = [("/boot/efi/EFI/*/BOOT*.efi", "/EFI/BOOT/"),
                  ("/boot/efi/EFI/*/grub2-efi/grubcd.efi", "/EFI/BOOT/grubx64.efi"),
                  ("/boot/grub2/themes/rosa/*", "/EFI/BOOT/themes/rosa/"),
                  ("/boot/grub2/fonts/unicode.pf2", "/EFI/BOOT/fonts/"),
