@@ -208,7 +208,7 @@ def main():
 
     try:
         creator.mount(options.base_on, options.cachedir)
-        creator.install()
+        creator.install_urpmi()
         creator.configure()
         if options.give_shell:
             print "Launching shell. Exit to continue."

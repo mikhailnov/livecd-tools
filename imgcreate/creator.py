@@ -17,6 +17,7 @@
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 
 import os
+import time
 import os.path
 import stat
 import sys
@@ -26,12 +27,10 @@ import logging
 import subprocess
 
 import selinux
-import yum
 import rpm
 
 from imgcreate.errors import *
 from imgcreate.fs import *
-from imgcreate.yuminst import *
 from imgcreate import kickstart
 
 FSLABEL_MAXLEN = 32
@@ -504,17 +503,17 @@ class ImageCreator(object):
 
         self._mount_instroot(base_on)
 
-        for d in ("/dev/pts", "/etc", "/boot", "/var/log", "/var/cache/yum", "/sys", "/proc"):
+        for d in ("/dev/pts", "/etc", "/boot", "/var/log", "/var/cache/urpmi", "/sys", "/proc"):
             makedirs(self._instroot + d)
 
-        cachesrc = cachedir or (self.__builddir + "/yum-cache")
+        cachesrc = cachedir or (self.__builddir + "/urpmi-cache")
         makedirs(cachesrc)
 
         # bind mount system directories into _instroot
         for (f, dest) in [("/sys", None), ("/proc", None),
                           ("/dev/pts", None), ("/dev/shm", None),
                           (self.__selinux_mountpoint, self.__selinux_mountpoint),
-                          (cachesrc, "/var/cache/yum")]:
+                          (cachesrc, "/var/cache/urpmi")]:
             if os.path.exists(f):
                 self.__bindmounts.append(BindChrootMount(f, self._instroot, dest))
             else:
@@ -573,104 +572,16 @@ class ImageCreator(object):
         shutil.rmtree(self.__builddir, ignore_errors = True)
         self.__builddir = None
 
-    def __select_packages(self, ayum):
-        skipped_pkgs = []
-        for pkg in kickstart.get_packages(self.ks,
-                                          self._get_required_packages()):
-            try:
-                ayum.selectPackage(pkg)
-            except yum.Errors.InstallError, e:
-                if kickstart.ignore_missing(self.ks):
-                    skipped_pkgs.append(pkg)
-                else:
-                    raise CreatorError("Failed to find package '%s' : %s" %
-                                       (pkg, e))
+    def install_urpmi(self, repo_urls = {}):
 
-        for pkg in skipped_pkgs:
-            logging.warn("Skipping missing package '%s'" % (pkg,))
-
-    def __select_groups(self, ayum):
-        skipped_groups = []
-        for group in kickstart.get_groups(self.ks):
-            try:
-                ayum.selectGroup(group.name, group.include)
-            except (yum.Errors.InstallError, yum.Errors.GroupsError), e:
-                if kickstart.ignore_missing(self.ks):
-                    raise CreatorError("Failed to find group '%s' : %s" %
-                                       (group.name, e))
-                else:
-                    skipped_groups.append(group)
-
-        for group in skipped_groups:
-            logging.warn("Skipping missing group '%s'" % (group.name,))
-
-    def __deselect_packages(self, ayum):
-        for pkg in kickstart.get_excluded(self.ks,
-                                          self._get_excluded_packages()):
-            ayum.deselectPackage(pkg)
-
-    def install(self, repo_urls = {}):
-        """Install packages into the install root.
-
-        This function installs the packages listed in the supplied kickstart
-        into the install root. By default, the packages are installed from the
-        repository URLs specified in the kickstart.
-
-        repo_urls -- a dict which maps a repository name to a repository URL;
-                     if supplied, this causes any repository URLs specified in
-                     the kickstart to be overridden.
-
-        """
-        yum_conf = self._mktemp(prefix = "yum.conf-")
-
-        ayum = LiveCDYum(releasever=self.releasever, useplugins=self.useplugins)
-        ayum.setup(yum_conf, self._instroot, cacheonly=self.cacheonly)
-
+        urpmi_conf = self.__builddir + "/urpmi_conf"
+        print urpmi_conf
+        time.sleep(5)
         for repo in kickstart.get_repos(self.ks, repo_urls):
-            (name, baseurl, mirrorlist, proxy, inc, exc, cost, sslverify) = repo
-
-            yr = ayum.addRepository(name, baseurl, mirrorlist)
-            if inc:
-                yr.includepkgs = inc
-            if exc:
-                yr.exclude = exc
-            if proxy:
-                yr.proxy = proxy
-            if cost is not None:
-                yr.cost = cost
-            yr.sslverify = sslverify
-        ayum.setup(yum_conf, self._instroot)
-
-        if kickstart.exclude_docs(self.ks):
-            rpm.addMacro("_excludedocs", "1")
-        if not kickstart.selinux_enabled(self.ks):
-            rpm.addMacro("__file_context_path", "%{nil}")
-        if kickstart.inst_langs(self.ks) != None:
-            rpm.addMacro("_install_langs", kickstart.inst_langs(self.ks))
-
-        try:
-            self.__select_packages(ayum)
-            self.__select_groups(ayum)
-            self.__deselect_packages(ayum)
-
-            ayum.runInstall()
-        except yum.Errors.RepoError, e:
-            raise CreatorError("Unable to download from repo : %s" % (e,))
-        except yum.Errors.YumBaseError, e:
-            raise CreatorError("Unable to install: %s" % (e,))
-        finally:
-            ayum.closeRpmDB()
-            ayum.close()
-            os.unlink(yum_conf)
-
-        # do some clean up to avoid lvm info leakage.  this sucks.
-        for subdir in ("cache", "backup", "archive"):
-            lvmdir = self._instroot + "/etc/lvm/" + subdir
-            try:
-                for f in os.listdir(lvmdir):
-                    os.unlink(lvmdir + "/" + f)
-            except:
-                pass
+            (name, baseurl, mirrorlist, proxy, inc, exc, cost) = repo
+            subprocess.call(["/usr/sbin/urpmi.addmedia", "--urpmi-root", urpmi_conf, name, baseurl])
+            packages = self.ks.handler.packages.packageList
+            subprocess.call(["/usr/sbin/urpmi", "--auto", "--no-suggests", "--fastunsafe", "--debug", "--no-verify", "--urpmi-root", urpmi_conf, "--root", self._instroot] + packages)
 
     def _run_post_scripts(self):
         for s in kickstart.get_post_scripts(self.ks):
@@ -729,9 +640,8 @@ class ImageCreator(object):
         kickstart.NetworkConfig(self._instroot).apply(ksh.network)
         kickstart.RPMMacroConfig(self._instroot).apply(self.ks)
 
-        self._create_bootconfig()
-
         self._run_post_scripts()
+        self._create_bootconfig()
         kickstart.SelinuxConfig(self._instroot).apply(ksh.selinux)
 
     def launch_shell(self):

@@ -27,6 +27,7 @@ import re
 
 from imgcreate.errors import *
 from imgcreate.fs import *
+from imgcreate.arch import *
 from imgcreate.creator import *
 
 class LiveImageCreatorBase(LoopImageCreator):
@@ -118,9 +119,9 @@ class LiveImageCreatorBase(LoopImageCreator):
         """
         r = kickstart.get_kernel_args(self.ks)
         if os.path.exists(self._instroot + "/usr/bin/rhgb"):
-            r += " rhgb"
+            r += " rhgb splash=silent logo.nologo"
         if os.path.exists(self._instroot + "/usr/bin/plymouth"):
-            r += " rhgb"
+            r += " rhgb splash=silent logo.nologo"
         return r
 
     def _get_mkisofs_options(self, isodir):
@@ -244,8 +245,8 @@ class LiveImageCreatorBase(LoopImageCreator):
                          isodir + "/isolinux/efiboot.img"])
         subprocess.call(["mkefiboot", "-a", isodir + "/EFI/BOOT",
                          isodir + "/isolinux/macboot.img", "-l", self.product,
-                         "-n", "/usr/share/pixmaps/bootloader/fedora-media.vol",
-                         "-i", "/usr/share/pixmaps/bootloader/fedora.icns",
+#                         "-n", "/usr/share/pixmaps/bootloader/rosa-media.vol",
+#                         "-i", "/usr/share/pixmaps/bootloader/rosa.icns",
                          "-p", self.product])
 
     def _create_bootconfig(self):
@@ -262,7 +263,7 @@ class LiveImageCreatorBase(LoopImageCreator):
         return env
 
     def __extra_filesystems(self):
-        return "vfat msdos isofs ext4 xfs btrfs";
+        return "vfat msdos isofs ext4 xfs =fs/nls btrfs";
 
     def __extra_drivers(self):
         retval = "sr_mod sd_mod ide-cd cdrom "
@@ -331,8 +332,14 @@ class LiveImageCreatorBase(LoopImageCreator):
         if os.path.exists("/usr/bin/isohybrid"):
             if os.path.exists(isodir + "/isolinux/efiboot.img"):
                 subprocess.call(["/usr/bin/isohybrid", "-u", "-m", iso])
+                subprocess.call(["/usr/bin/rosa-image-fix-x86.pl", iso])
+                logging.warn("iso hacked with x86 version of script")
+
             else:
                 subprocess.call(["/usr/bin/isohybrid", iso])
+                subprocess.call(["/usr/bin/rosa-image-fix-x86.pl", iso])
+                logging.warn("iso hacked with x86 version of script")
+
 
         self.__implant_md5sum(iso)
 
@@ -445,12 +452,12 @@ class x86LiveImageCreator(LiveImageCreatorBase):
 
     def __copy_syslinux_background(self, isodest):
         background_path = self._instroot + \
-                          "/usr/share/anaconda/boot/syslinux-vesa-splash.jpg"
+                          "/usr/share/gfxboot/themes/Rosa-EE/splash.jpg"
 
         if not os.path.exists(background_path):
             # fallback to F13 location
             background_path = self._instroot + \
-                              "/usr/lib/anaconda-runtime/syslinux-vesa-splash.jpg"
+                              "/usr/share/gfxboot/themes/Rosa-EE/splash.jpg"
 
             if not os.path.exists(background_path):
                 return False
@@ -501,30 +508,27 @@ class x86LiveImageCreator(LiveImageCreatorBase):
 default %(menu)s
 timeout %(timeout)d
 menu background %(background)s
-menu autoboot Starting %(title)s in # second{,s}. Press any key to interrupt.
+menu autoboot Starting boot from local drive in # second{,s}. Press any key to interrupt.
 
-menu clear
+#menu clear
 menu title %(title)s
-menu vshift 8
-menu rows 18
-menu margin 8
+#menu vshift 8
+#menu rows 18
+#menu margin 8
 #menu hidden
-menu helpmsgrow 15
-menu tabmsgrow 13
+#menu helpmsgrow 15
+#menu tabmsgrow 13
 
-menu color border * #00000000 #00000000 none
-menu color sel 0 #ffffffff #00000000 none
-menu color title 0 #ff7ba3d0 #00000000 none
-menu color tabmsg 0 #ff3a6496 #00000000 none
-menu color unsel 0 #84b8ffff #00000000 none
-menu color hotsel 0 #84b8ffff #00000000 none
-menu color hotkey 0 #ffffffff #00000000 none
-menu color help 0 #ffffffff #00000000 none
-menu color scrollbar 0 #ffffffff #ff355594 none
-menu color timeout 0 #ffffffff #00000000 none
-menu color timeout_msg 0 #ffffffff #00000000 none
-menu color cmdmark 0 #84b8ffff #00000000 none
-menu color cmdline 0 #ffffffff #00000000 none
+menu color border 0 #ffffffff #00000000
+menu color sel 7 #ffffffff #ff000000
+menu color title 0 #ffffffff #00000000
+menu color tabmsg 0 #ffffffff #00000000
+menu color unsel 0 #ffffffff #00000000
+menu color hotsel 0 #ff000000 #ffffffff
+menu color hotkey 7 #ffffffff #ff000000
+menu color timeout_msg 0 #ffffffff #00000000
+menu color timeout 0 #ffffffff #00000000
+menu color cmdline 0 #ffffffff #00000000
 
 menu tabmsg Press Tab for full configuration options on menu items.
 menu separator
@@ -574,11 +578,15 @@ menu separator
             default = self.__is_default_kernel(kernel, kernels)
 
             if default:
-                long = self.product
+                long = "ROSA Desktop"
             elif kernel.startswith("kernel-"):
-                long = "%s (%s)" % (self.product, kernel[7:])
+                long = "%s (%s)" % ("ROSA Desktop", kernel[7:])           
             else:
-                long = "%s (%s)" % (self.product, kernel)
+                long = "%s (%s)" % ("ROSA Desktop", kernel)
+
+            if os.path.exists(self._instroot + "/etc/system-release"):
+                long = subprocess.check_output("echo -n `sed 's, release .*$,,g' /etc/system-release`", shell=True)
+                logging.warn('using LSB info for syslinux names')
 
             # tell dracut not to ask for LUKS passwords or activate mdraid sets
             if isDracut:
@@ -590,31 +598,38 @@ menu separator
                                            fslabel = self.fslabel,
                                            isofstype = "auto",
                                            liveargs = kern_opts,
-                                           long = "^Start " + long,
+                                           long = "Start " + long,
                                            short = "linux" + index,
-                                           extra = "",
+                                           extra = "quiet",
                                            help = "",
                                            index = index))
+            kern_opts = kernel_options + " install"
 
-            if default:
-                linux[-1] += "  menu default\n"
-
-            basic.append(self.__get_image_stanza(is_xen, isDracut,
+            linux.append(self.__get_image_stanza(is_xen, isDracut,
                                            fslabel = self.fslabel,
                                            isofstype = "auto",
                                            liveargs = kern_opts,
-                                           long = "Start " + long + " in ^basic graphics mode.",
-                                           short = "basic" + index,
-                                           extra = "nomodeset",
-                                           help = "Try this option out if you're having trouble starting.",
+                                           long = "Install " + long,
+                                           short = "linux" + index,
+                                           extra = "quiet vga=788",
+                                           help = "",
                                            index = index))
-
+            linux.append(self.__get_image_stanza(is_xen, isDracut,
+                                           fslabel = self.fslabel,
+                                           isofstype = "auto",
+                                           liveargs = kern_opts,
+                                           long = "Install " + long + " in basic graphics mode",
+                                           short = "basic" + index,
+                                           extra = "xdriver=vesa nokmsboot install",
+                                           help = "Try this option out if you're having trouble installing.",
+                                          index = index))
+            kern_opts = kernel_options
             if checkisomd5:
                 check.append(self.__get_image_stanza(is_xen, isDracut,
                                                fslabel = self.fslabel,
                                                isofstype = "auto",
                                                liveargs = kern_opts,
-                                               long = "^Test this media & start " + long,
+                                               long = "Test this media & start " + long,
                                                short = "check" + index,
                                                extra = "rd.live.check",
                                                help = "",
@@ -627,14 +642,14 @@ menu separator
         return (linux, basic, check)
 
     def __get_memtest_stanza(self, isodir):
-        memtest = glob.glob(self._instroot + "/boot/memtest86*")
+        memtest = glob.glob(self._instroot + "/boot/memtest*")
         if not memtest:
             return ""
 
         shutil.copyfile(memtest[0], isodir + "/isolinux/memtest")
 
         return """label memtest
-  menu label Run a ^memory test.
+  menu label Run a memory test.
   text help
     If your system is having issues, an problem with your 
     system's memory may be the cause. Use this utility to 
@@ -645,8 +660,14 @@ menu separator
 
     def __get_local_stanza(self, isodir):
         return """label local
-  menu label Boot from ^local drive
+  menu label Boot from local drive
   localboot 0xffff
+"""
+    def __get_grub2_stanza(self, isodir):
+        return """label Rescue
+  menu label Run super grub2 disk
+  kernel memdisk
+  append initrd=sgb.iso
 """
 
     def _configure_syslinux_bootloader(self, isodir):
@@ -670,6 +691,7 @@ menu separator
 
         linux, basic, check = self.__get_image_stanzas(isodir)
         # Add linux stanzas to main menu
+        cfg += self.__get_local_stanza(isodir)
         for s in linux:
             cfg += s
         cfg += "menu separator\n"
@@ -686,7 +708,7 @@ menu separator
         cfg += self.__get_memtest_stanza(isodir)
         cfg += "menu separator\n"
 
-        cfg += self.__get_local_stanza(isodir)
+        cfg += self.__get_grub2_stanza(isodir)
         cfg += self._get_isolinux_stanzas(isodir)
 
         cfg += """menu separator
@@ -712,14 +734,14 @@ menu end
             If any of them are missing, return False.
             requires:
               shim.efi
-              gcdx64.efi
+              grub.efi
               fonts/unicode.pf2
         """
         fail = False
         missing = []
-        files = [("/boot/efi/EFI/*/shim.efi", "/EFI/BOOT/BOOT%s.efi" % (self.efiarch,)),
-                 ("/boot/efi/EFI/*/gcdx64.efi", "/EFI/BOOT/grubx64.efi"),
-                 ("/boot/efi/EFI/*/fonts/unicode.pf2", "/EFI/BOOT/fonts/"),
+        files = [("/boot/efi/EFI/*/grub2-efi/shim.efi", "/EFI/BOOT/BOOT%s.efi" % (self.efiarch,)),
+                 ("/boot/efi/EFI/*/grub2-efi/grub.efi", "/EFI/BOOT/grubx64.efi"),
+                 ("/boot/grub2/fonts/unicode.pf2", "/EFI/BOOT/fonts/"),
                 ]
         makedirs(isodir+"/EFI/BOOT/fonts/")
         for src, dest in files:
@@ -821,7 +843,7 @@ submenu 'Troubleshooting -->' {
         cfgf.close()
 
         # first gen mactel machines get the bootloader name wrong apparently
-        if rpmUtils.arch.getBaseArch() == "i386":
+        if getBaseArch() == "i386":
             os.link(isodir + "/EFI/BOOT/BOOT%s.efi" % (self.efiarch),
                     isodir + "/EFI/BOOT/BOOT.efi")
 
@@ -1025,7 +1047,7 @@ class ppc64LiveImageCreator(ppcLiveImageCreator):
         return ["kernel.ppc"] + \
                ppcLiveImageCreator._get_excluded_packages(self)
 
-arch = rpmUtils.arch.getBaseArch()
+arch = getBaseArch()
 if arch in ("i386", "x86_64"):
     LiveImageCreator = x86LiveImageCreator
 elif arch in ("ppc",):

@@ -73,9 +73,9 @@ def squashfs_compression_type(sqfs_img):
 def mksquashfs(in_img, out_img, compress_type):
 # Allow gzip to work for older versions of mksquashfs
     if not compress_type or compress_type == "gzip":
-        args = ["/sbin/mksquashfs", in_img, out_img]
+        args = ["/usr/bin/mksquashfs", in_img, out_img]
     else:
-        args = ["/sbin/mksquashfs", in_img, out_img, "-comp", compress_type]
+        args = ["/usr/bin/mksquashfs", in_img, out_img, "-comp", compress_type]
 
     if not sys.stdout.isatty():
         args.append("-no-progress")
@@ -610,7 +610,7 @@ class DeviceMapperSnapshot(object):
         # where C is the number of 512 byte sectors in use
         #
         try:
-            return int((out.split()[3]).split('/')[0]) * 512
+            return int((out.split()[4]).split('/')[0]) * 512
         except ValueError:
             raise SnapshotError("Failed to parse dmsetup status: " + out)
 

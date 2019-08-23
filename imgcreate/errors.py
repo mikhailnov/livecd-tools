@@ -56,3 +56,6 @@ class SquashfsError(CreatorError):
     pass
 class ResizeError(CreatorError):
     pass
+class InitramfsError(CreatorError):
+    pass
+

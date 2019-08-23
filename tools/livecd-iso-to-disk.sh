@@ -402,7 +402,7 @@ checkPartActive() {
     if [ "$(/sbin/fdisk -l $device 2>/dev/null |grep -m1 $dev |awk {'print $2;'})" != "*" ]; then
         echo "Partition isn't marked bootable!"
         echo "You can mark the partition as bootable with "
-        echo "    # /sbin/parted $device"
+        echo "    # /usr/sbin/parted $device"
         echo "    (parted) toggle N boot"
         echo "    (parted) quit"
         exitclean
@@ -430,8 +430,8 @@ createGPTLayout() {
     read
     umount ${device}* &> /dev/null || :
     wipefs -a ${device}
-    /sbin/parted --script $device mklabel gpt
-    partinfo=$(LC_ALL=C /sbin/parted --script -m $device "unit MB print" |grep ^$device:)
+    /usr/sbin/parted --script $device mklabel gpt
+    partinfo=$(LC_ALL=C /usr/sbin/parted --script -m $device "unit MB print" |grep ^$device:)
     dev_size=$(echo $partinfo |cut -d : -f 2 |sed -e 's/MB$//')
     p1_size=$(($dev_size - 3))
 
@@ -442,7 +442,7 @@ createGPTLayout() {
     fi
     p1_start=1
     p1_end=$(($p1_size + 1))
-    /sbin/parted -s $device u MB mkpart '"EFI System Partition"' fat32 $p1_start $p1_end set 1 boot on
+    /usr/sbin/parted -s $device u MB mkpart '"EFI System Partition"' fat32 $p1_start $p1_end set 1 boot on
     # Sometimes automount can be _really_ annoying.
     echo "Waiting for devices to settle..."
     /sbin/udevadm settle
@@ -462,8 +462,8 @@ createMSDOSLayout() {
     read
     umount ${device}* &> /dev/null || :
     wipefs -a ${device}
-    /sbin/parted --script $device mklabel msdos
-    partinfo=$(LC_ALL=C /sbin/parted --script -m $device "unit MB print" |grep ^$device:)
+    /usr/sbin/parted --script $device mklabel msdos
+    partinfo=$(LC_ALL=C /usr/sbin/parted --script -m $device "unit MB print" |grep ^$device:)
     dev_size=$(echo $partinfo |cut -d : -f 2 |sed -e 's/MB$//')
     p1_size=$(($dev_size - 3))
 
@@ -474,7 +474,7 @@ createMSDOSLayout() {
     fi
     p1_start=1
     p1_end=$(($p1_size + 1))
-    /sbin/parted -s $device u MB mkpart primary fat32 $p1_start $p1_end set 1 boot on
+    /usr/sbin/parted -s $device u MB mkpart primary fat32 $p1_start $p1_end set 1 boot on
     # Sometimes automount can be _really_ annoying.
     echo "Waiting for devices to settle..."
     /sbin/udevadm settle
@@ -498,8 +498,8 @@ createEXTFSLayout() {
     read
     umount ${device}* &> /dev/null || :
     wipefs -a ${device}
-    /sbin/parted -s $device mklabel msdos
-    partinfo=$(LC_ALL=C /sbin/parted -s -m $device "u MB print" |grep ^$device:)
+    /usr/sbin/parted -s $device mklabel msdos
+    partinfo=$(LC_ALL=C /usr/sbin/parted -s -m $device "u MB print" |grep ^$device:)
     dev_size=$(echo $partinfo |cut -d : -f 2 |sed -e 's/MB$//')
     p1_size=$(($dev_size - 3))
 
@@ -510,7 +510,7 @@ createEXTFSLayout() {
     fi
     p1_start=1
     p1_end=$(($p1_size + 1))
-    /sbin/parted -s $device u MB mkpart primary ext2 $p1_start $p1_end set 1 boot on
+    /usr/sbin/parted -s $device u MB mkpart primary ext2 $p1_start $p1_end set 1 boot on
     # Sometimes automount can be _really_ annoying.
     echo "Waiting for devices to settle..."
     /sbin/udevadm settle
@@ -532,13 +532,13 @@ checkGPT() {
     dev=$1
     getdisk $dev
 
-    if [ "$(LC_ALL=C /sbin/parted -m $device p 2>/dev/null |grep -ic :gpt:)" -eq "0" ]; then
+    if [ "$(LC_ALL=C /usr/sbin/parted -m $device p 2>/dev/null |grep -ic :gpt:)" -eq "0" ]; then
         echo "EFI boot requires a GPT partition table."
         echo "This can be done manually or you can run with --format"
         exitclean
     fi
 
-    partinfo=$(LC_ALL=C /sbin/parted --script -m $device "print" |grep ^$partnum:)
+    partinfo=$(LC_ALL=C /usr/sbin/parted --script -m $device "print" |grep ^$partnum:)
     volname=$(echo $partinfo |cut -d : -f 6)
     flags=$(echo $partinfo |cut -d : -f 7)
     if [ "$volname" != "EFI System Partition" ]; then
@@ -549,7 +549,7 @@ checkGPT() {
     if [ "$(echo $flags |grep -c boot)" = "0" ]; then
         echo "Partition isn't marked bootable!"
         echo "You can mark the partition as bootable with "
-        echo "    # /sbin/parted $device"
+        echo "    # /usr/sbin/parted $device"
         echo "    (parted) toggle N boot"
         echo "    (parted) quit"
         exitclean
