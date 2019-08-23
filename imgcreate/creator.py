@@ -25,6 +25,7 @@ import tempfile
 import shutil
 import logging
 import subprocess
+import re
 
 import selinux
 import rpm
@@ -577,17 +578,24 @@ class ImageCreator(object):
         urpmi_conf = self.__builddir + "/urpmi_conf"
         print urpmi_conf
         time.sleep(5)
-        for repo in kickstart.get_repos(self.ks, repo_urls):
-            (name, baseurl, mirrorlist, proxy, inc, exc, cost, sslverify) = repo
-            subprocess.call(["/usr/sbin/urpmi.addmedia", "--urpmi-root", urpmi_conf, name, baseurl])
-            packages = self.ks.handler.packages.packageList
-            if "basesystem" in packages:
-                print "Basesystem should be installed first"
-                subprocess.call(["/usr/sbin/urpmi", "--auto", "--split-length", "0", "--fastunsafe", "--nolock", "--ignorearch", "--no-verify-rpm", "--no-suggests", "--urpmi-root", urpmi_conf, "--root", self._instroot] + ['basesystem'])
-            
-            
-            print "Now let's install all other packages"
-            subprocess.call(["/usr/sbin/urpmi", "--auto", "--no-suggests", "--fastunsafe", "--debug", "--no-verify", "--urpmi-root", urpmi_conf, "--root", self._instroot] + packages)
+        try:
+            for repo in kickstart.get_repos(self.ks, repo_urls):
+                (name, baseurl, mirrorlist, proxy, inc, exc, cost, sslverify) = repo
+                subprocess.check_call(["/usr/sbin/urpmi.addmedia", "--urpmi-root", urpmi_conf, name, baseurl])
+        except subprocess.CalledProcessError, err:
+            raise CreatorError("Failed to add repository \"%s\" (%s), error code %d" % (name, baseurl, err.returncode))
+
+        packages = self.ks.handler.packages.packageList
+        try:
+            print "Let's bootstrap chroot with all packages that must be installed into ISO..."
+            os.environ["urpmiRoot"] = urpmi_conf
+            os.environ["rpmRoot"] = self._instroot
+            packages_list = ' '.join(packages)
+            os.environ["packagesList"] = packages_list
+            #subprocess.check_call(["/usr/sbin/urpmi", "--auto", "--no-suggests", "--fastunsafe", "--debug", "--urpmi-root", urpmi_conf, "--root", self._instroot] + packages)
+            subprocess.check_call("/usr/sbin/livecd-urpmi-bootstrapper")
+        except subprocess.CalledProcessError, err:
+            raise CreatorError("Package installation failed, error code %d" % err.returncode)
 
     def _run_post_scripts(self):
         for s in kickstart.get_post_scripts(self.ks):
