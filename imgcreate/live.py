@@ -742,8 +742,14 @@ menu end
         """
         fail = False
         missing = []
+        if os.path.exists(self._instroot + "/etc/system-release"):
+            arch = subprocess.check_output("echo -n `sed 's/^.* release \\S* for //' " + self._instroot + "/etc/system-release`", shell=True)
+            grub_arch = ("x64" if arch == "x86_64" else "ia32")
+        else:
+            grub_arch = "x64"
+
         files = [("/boot/efi/EFI/*/BOOT*.efi", "/EFI/BOOT/"),
-                 ("/boot/efi/EFI/*/grub2-efi/grubcd.efi", "/EFI/BOOT/grubx64.efi"),
+                 ("/boot/efi/EFI/*/grub2-efi/grubcd.efi", "/EFI/BOOT/grub%s.efi" % grub_arch),
                  ("/boot/grub2/themes/rosa/*", "/EFI/BOOT/themes/rosa/"),
                  ("/boot/grub2/fonts/unicode.pf2", "/EFI/BOOT/fonts/"),
                 ]
