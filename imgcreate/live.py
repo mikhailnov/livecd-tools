@@ -473,15 +473,17 @@ class x86LiveImageCreator(LiveImageCreatorBase):
                         isodir + "/isolinux/vmlinuz" + index)
 
         isDracut = False
-        if os.path.exists(bootdir + "/initramfs-" + version + ".img"):
-            shutil.copyfile(bootdir + "/initramfs-" + version + ".img",
-                            isodir + "/isolinux/initrd" + index + ".img")
-            isDracut = True
-        elif os.path.exists(bootdir + "/initrd-" + version + ".img"):
+        if os.path.exists(bootdir + "/initrd-" + version + ".img"):
             shutil.copyfile(bootdir + "/initrd-" + version + ".img",
                             isodir + "/isolinux/initrd" + index + ".img")
-        elif not self.base_on:
-            logging.error("No initrd or initramfs found for %s" % (version,))
+            isDracut = True
+        else:
+            raise InitramfsError("Unable to create initrd-" + version + ".img")
+#        elif os.path.exists(bootdir + "/initrd-" + version + ".img"):
+#            shutil.copyfile(bootdir + "/initrd-" + version + ".img",
+#                            isodir + "/isolinux/initrd" + index + ".img")
+#        elif not self.base_on:
+#            logging.error("No initrd or initramfs found for %s" % (version,))
 
         is_xen = False
         if os.path.exists(bootdir + "/xen.gz-" + version[:-3]):
@@ -914,13 +916,14 @@ class ppcLiveImageCreator(LiveImageCreatorBase):
         shutil.copyfile(bootdir + "/vmlinuz-" + version,
                         destdir + "/vmlinuz")
 
-        if os.path.exists(bootdir + "/initramfs-" + version + ".img"):
-            shutil.copyfile(bootdir + "/initramfs-" + version + ".img",
+        if os.path.exists(bootdir + "/initrd-" + version + ".img"):
+            shutil.copyfile(bootdir + "/initrd-" + version + ".img",
                             destdir + "/initrd.img")
             isDracut = True
         else:
-            shutil.copyfile(bootdir + "/initrd-" + version + ".img",
-                            destdir + "/initrd.img")
+            raise InitramfsError("Unable to create initrd-" + version + ".img")
+#            shutil.copyfile(bootdir + "/initrd-" + version + ".img",
+#                            destdir + "/initrd.img")
 
         return isDracut
 
