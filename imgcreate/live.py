@@ -819,6 +819,8 @@ search --no-floppy --set=root -l '%(isolabel)s'
         else:
             long = self.product
 
+        kernel_options += " rd.luks=0 rd.md=0 rd.dm=0"
+
         for index in range(0, 9):
             # we don't support xen kernels
             if os.path.exists("%s/EFI/BOOT/xen%d.gz" %(isodir, index)):
