@@ -243,11 +243,11 @@ class LiveImageCreatorBase(LoopImageCreator):
         # XXX-BCL: does this need --label?
         subprocess.call(["mkefiboot", isodir + "/EFI/BOOT",
                          isodir + "/isolinux/efiboot.img"])
-        subprocess.call(["mkefiboot", "-a", isodir + "/EFI/BOOT",
-                         isodir + "/isolinux/macboot.img", "-l", self.product,
+#        subprocess.call(["mkefiboot", "-a", isodir + "/EFI/BOOT",
+#                         isodir + "/isolinux/macboot.img", "-l", self.product,
 #                         "-n", "/usr/share/pixmaps/bootloader/rosa-media.vol",
 #                         "-i", "/usr/share/pixmaps/bootloader/rosa.icns",
-                         "-p", self.product])
+#                         "-p", self.product])
 
     def _create_bootconfig(self):
         """Configure the image so that it's bootable."""
@@ -331,7 +331,7 @@ class LiveImageCreatorBase(LoopImageCreator):
 
         if os.path.exists("/usr/bin/isohybrid"):
             if os.path.exists(isodir + "/isolinux/efiboot.img"):
-                subprocess.call(["/usr/bin/isohybrid", "-u", "-m", iso])
+                subprocess.call(["/usr/bin/isohybrid", "-u", iso])
                 subprocess.call(["/usr/bin/rosa-image-fix-x86.pl", iso])
                 logging.warn("iso hacked with x86 version of script")
 
@@ -403,9 +403,9 @@ class x86LiveImageCreator(LiveImageCreatorBase):
         if os.path.exists(isodir + "/isolinux/efiboot.img"):
             options.extend([ "-eltorito-alt-boot",
                              "-e", "isolinux/efiboot.img",
-                             "-no-emul-boot",
-                             "-eltorito-alt-boot",
-                             "-e", "isolinux/macboot.img",
+#                             "-no-emul-boot",
+#                             "-eltorito-alt-boot",
+#                             "-e", "isolinux/macboot.img",
                              "-no-emul-boot"])
         return options
 
@@ -752,7 +752,8 @@ menu end
                 missing.append("Missing EFI file (%s)" % (src,))
                 fail = True
             else:
-                shutil.copy(src_glob[0], isodir+dest)
+                for src_file in src_glob:
+                    shutil.copy(src_file, isodir+dest)
         map(logging.error, missing)
         return fail
 
