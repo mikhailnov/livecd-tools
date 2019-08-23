@@ -600,7 +600,7 @@ menu separator
                                            liveargs = kern_opts,
                                            long = "Start " + long,
                                            short = "linux" + index,
-                                           extra = "quiet",
+                                           extra = "rhgb splash=silent logo.nologo vga=788",
                                            help = "",
                                            index = index))
             kern_opts = kernel_options + " install"
@@ -611,7 +611,7 @@ menu separator
                                            liveargs = kern_opts,
                                            long = "Install " + long,
                                            short = "linux" + index,
-                                           extra = "quiet vga=788",
+                                           extra = "rhgb splash=silent logo.nologo vga=788",
                                            help = "",
                                            index = index))
             linux.append(self.__get_image_stanza(is_xen, isDracut,
@@ -620,9 +620,9 @@ menu separator
                                            liveargs = kern_opts,
                                            long = "Install " + long + " in basic graphics mode",
                                            short = "basic" + index,
-                                           extra = "xdriver=vesa nokmsboot install",
+                                           extra = "xdriver=vesa plymouth.enable=0 nokmsboot",
                                            help = "Try this option out if you're having trouble installing.",
-                                          index = index))
+                                           index = index))
             kern_opts = kernel_options
             if checkisomd5:
                 check.append(self.__get_image_stanza(is_xen, isDracut,
@@ -661,6 +661,7 @@ menu separator
     def __get_local_stanza(self, isodir):
         return """label local
   menu label Boot from local drive
+  menu default
   localboot 0xffff
 """
     def __get_grub2_stanza(self, isodir):
