@@ -578,9 +578,15 @@ class ImageCreator(object):
         print urpmi_conf
         time.sleep(5)
         for repo in kickstart.get_repos(self.ks, repo_urls):
-            (name, baseurl, mirrorlist, proxy, inc, exc, cost) = repo
+            (name, baseurl, mirrorlist, proxy, inc, exc, cost, sslverify) = repo
             subprocess.call(["/usr/sbin/urpmi.addmedia", "--urpmi-root", urpmi_conf, name, baseurl])
             packages = self.ks.handler.packages.packageList
+            if "basesystem" in packages:
+                print "Basesystem should be installed first"
+                subprocess.call(["/usr/sbin/urpmi", "--auto", "--split-length", "0", "--fastunsafe", "--nolock", "--ignorearch", "--no-verify-rpm", "--no-suggests", "--urpmi-root", urpmi_conf, "--root", self._instroot] + ['basesystem'])
+            
+            
+            print "Now let's install all other packages"
             subprocess.call(["/usr/sbin/urpmi", "--auto", "--no-suggests", "--fastunsafe", "--debug", "--no-verify", "--urpmi-root", urpmi_conf, "--root", self._instroot] + packages)
 
     def _run_post_scripts(self):
@@ -633,12 +639,12 @@ class ImageCreator(object):
         kickstart.KeyboardConfig(self._instroot).apply(ksh.keyboard)
         kickstart.TimezoneConfig(self._instroot).apply(ksh.timezone)
         kickstart.AuthConfig(self._instroot).apply(ksh.authconfig)
-        kickstart.FirewallConfig(self._instroot).apply(ksh.firewall)
+#        kickstart.FirewallConfig(self._instroot).apply(ksh.firewall)
         kickstart.RootPasswordConfig(self._instroot).apply(ksh.rootpw)
         kickstart.ServicesConfig(self._instroot).apply(ksh.services)
         kickstart.XConfig(self._instroot).apply(ksh.xconfig)
         kickstart.NetworkConfig(self._instroot).apply(ksh.network)
-        kickstart.RPMMacroConfig(self._instroot).apply(self.ks)
+#        kickstart.RPMMacroConfig(self._instroot).apply(self.ks)
 
         self._run_post_scripts()
         self._create_bootconfig()
