@@ -587,7 +587,7 @@ menu separator
                 long = "%s (%s)" % ("ROSA Desktop", kernel)
 
             if os.path.exists(self._instroot + "/etc/system-release"):
-                long = subprocess.check_output("echo -n `sed 's, release .*$,,g' /etc/system-release`", shell=True)
+                long = subprocess.check_output("echo -n `sed 's, release .*$,,g' " + self._instroot + "/etc/system-release`", shell=True)
                 logging.warn('using LSB info for syslinux names')
 
             # tell dracut not to ask for LUKS passwords or activate mdraid sets
@@ -817,7 +817,7 @@ search --no-floppy --set=root -l '%(isolabel)s'
         cfg = ""
 
         if os.path.exists(self._instroot + "/etc/system-release"):
-            long = subprocess.check_output("echo -n `sed 's, release .*$,,g' /etc/system-release`", shell=True)
+            long = subprocess.check_output("echo -n `sed 's, release .*$,,g' " + self._instroot + "/etc/system-release`", shell=True)
         else:
             long = self.product
 
