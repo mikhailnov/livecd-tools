@@ -801,7 +801,9 @@ search --no-floppy --set=root -l '%(isolabel)s'
         else:
             args["rootlabel"] = "CDLABEL=%(fslabel)s" % args
         return """menuentry '%(long)s' --class rosa --class gnu-linux --class gnu --class os {
+	echo 'Loading kernel ...'
 	linux /isolinux/vmlinuz%(index)s root=%(rootlabel)s %(liveargs)s %(extra)s
+	echo 'Loading initial ramdisk ...'
 	initrd /isolinux/initrd%(index)s.img
 }
 """ %args
