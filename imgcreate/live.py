@@ -24,6 +24,7 @@ import shutil
 import subprocess
 import logging
 import re
+import platform
 
 from imgcreate.errors import *
 from imgcreate.fs import *
@@ -742,9 +743,9 @@ menu end
         """
         fail = False
         missing = []
-        if os.path.exists(self._instroot + "/etc/system-release"):
-            arch = subprocess.check_output("echo -n `sed 's/^.* release \\S* for //' " + self._instroot + "/etc/system-release`", shell=True)
-            grub_arch = ("x64" if arch == "x86_64" else "ia32")
+        if os.path.exists(self._instroot + "/bin/sh"):
+            arch = platform.architecture(executable=self._instroot + "/bin/sh")[0]
+            grub_arch = ("x64" if arch == "64bit" else "ia32")
         else:
             grub_arch = "x64"
 
