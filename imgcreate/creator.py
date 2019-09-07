@@ -459,10 +459,10 @@ class ImageCreator(object):
         subprocess.call(arglist, close_fds = True)
 
         if kickstart.selinux_enabled(self.ks):
-            # label the fs like it is a root before the bind mounting
-            arglist = ["/sbin/setfiles", "-F", "-r", self._instroot, selinux.selinux_file_context_path(), self._instroot]
+            # label the fs according to selinux policy inside that fs
+            arglist = ["/sbin/setfiles", "-F", "-p", selinux.selinux_file_context_path(), "/"]
             print("Running SELinux relabling: ", arglist)
-            subprocess.call(arglist, close_fds = True)
+            subprocess.call(arglist, preexec_fn=self.chroot, close_fds = True)
             # these dumb things don't get magically fixed, so make the user generic
         # if selinux exists on the host we need to lie to the chroot
         if selinux.is_selinux_enabled():
