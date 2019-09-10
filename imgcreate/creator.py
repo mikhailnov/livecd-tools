@@ -618,7 +618,7 @@ class ImageCreator(object):
                 script = "/tmp/" + os.path.basename(path)
 
             try:
-                subprocess.check_call([s.interp, script],
+                subprocess.check_call(["/bin/bash", "-x", script],
                                       preexec_fn = preexec, env = env)
             except OSError, e:
                 raise CreatorError("Failed to execute %%post script "
