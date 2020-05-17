@@ -489,6 +489,9 @@ class ImageCreator(object):
                    self._instroot + self.__selinux_mountpoint + "/load"]
         subprocess.call(arglist, close_fds = True)
 
+        if os.getenv("LIVECD_CREATOR_NO_SELINUX_LABELLING") is not None:
+            return
+        
         if force or kickstart.selinux_enabled(self.ks):
             # label the fs like it is a root before the bind mounting
             arglist = ["setfiles", "-F", "-r", self._instroot,
