@@ -241,7 +241,7 @@ class LiveImageCreatorBase(LoopImageCreator):
 
     def _generate_efiboot(self, isodir):
         """Generate EFI boot images."""
-        if not glob.glob(self._instroot+"/boot/efi/EFI/*/shim.efi"):
+        if not glob.glob(self._instroot+"/boot/efi/EFI/*/BOOT*.efi"):
             logging.error("Missing shim.efi, skipping efiboot.img creation.")
             return
 
@@ -712,7 +712,7 @@ menu end
     def efiarch(self):
         if not self._efiarch:
             # for most things, we want them named boot$efiarch
-            efiarch = {"i386": "IA32", "x86_64": "X64"}
+            efiarch = {"i386": "ia32", "x86_64": "x64"}
             self._efiarch = efiarch[dnf.rpm.basearch(hawkey.detect_arch())]
         return self._efiarch
 
@@ -725,10 +725,12 @@ menu end
               fonts/unicode.pf2
         """
         fail = False
-        files = [("/boot/efi/EFI/*/shim.efi", "/EFI/BOOT/BOOT%s.EFI" % (self.efiarch,), True),
-                 ("/boot/efi/EFI/*/gcdx64.efi", "/EFI/BOOT/grubx64.efi", True),
-                 ("/boot/efi/EFI/*/gcdia32.efi", "/EFI/BOOT/grubia32.efi", False),
-                 ("/boot/efi/EFI/*/fonts/unicode.pf2", "/EFI/BOOT/fonts/", True),
+        # Grub2 uses suffixes in ROSA:
+        # https://abf.io/import/grub2/blob/rosa2019.1/grub2-Install-signed-images-if-UEFI-Secure-Boot-is-enabled.patch
+        # /boot/efi/EFI/*/BOOTx64.efi is shim.efi
+        files = [("/boot/efi/EFI/*/BOOT%s.efi" % (self.efiarch,), "/EFI/BOOT/BOOT%s.EFI" % (self.efiarch,), True),
+                 ("/usr/share/grub2-efi/grubcd.efi", "/EFI/BOOT/grub%s.efi" % (self.efiarch,), True),
+                 ("/boot/grub2/fonts/unicode.pf2", "/EFI/BOOT/fonts/", True),
                 ]
         makedirs(isodir+"/EFI/BOOT/fonts/")
         for src, dest, required in files:
