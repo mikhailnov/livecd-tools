@@ -232,7 +232,7 @@ class LiveImageCreatorBase(LoopImageCreator):
 
     def _generate_efiboot(self, isodir):
         """Generate EFI boot images."""
-        if not glob.glob(self._instroot+"/boot/efi/EFI/*/shim*.efi"):
+        if not glob.glob(self._instroot+"/boot/efi/EFI/*/BOOT*.efi"):
             logging.error("Missing shim.efi, skipping efiboot.img creation.")
             return
 
@@ -704,7 +704,7 @@ menu end
     def efiarch(self):
         if not self._efiarch:
             # for most things, we want them named boot$efiarch
-            efiarch = {"i386": "IA32", "x86_64": "X64"}
+            efiarch = {"i386": "ia32", "x86_64": "x64"}
             self._efiarch = efiarch[dnf.rpm.basearch(hawkey.detect_arch())]
         return self._efiarch
 
@@ -717,11 +717,11 @@ menu end
               fonts/unicode.pf2
         """
         fail = False
-        files = [("/boot/efi/EFI/*/shim%s.efi" % (self.efiarch.lower(),), "/EFI/BOOT/BOOT%s.EFI" % (self.efiarch,), True),
-                 ("/boot/efi/EFI/*/gcd%s.efi" % (self.efiarch.lower(),), "/EFI/BOOT/grub%s.efi" % (self.efiarch.lower(),), True),
+        files = [("/boot/efi/EFI/*/BOOT%s.efi" % (self.efiarch,), "/EFI/BOOT/BOOT%s.EFI" % (self.efiarch,), True),
+                 ("/usr/share/grub2-efi/grubcd.efi", "/EFI/BOOT/grub%s.efi" % (self.efiarch,), True),
                  ("/boot/efi/EFI/*/shimia32.efi", "/EFI/BOOT/BOOTIA32.EFI", False),
                  ("/boot/efi/EFI/*/gcdia32.efi", "/EFI/BOOT/grubia32.efi", False),
-                 ("/boot/efi/EFI/*/fonts/unicode.pf2", "/EFI/BOOT/fonts/", True),
+                 ("/boot/grub2/fonts/unicode.pf2", "/EFI/BOOT/fonts/", True),
                 ]
         makedirs(isodir+"/EFI/BOOT/fonts/")
         for src, dest, required in files:
@@ -1096,15 +1096,15 @@ class aarch64LiveImageCreator(LiveImageCreatorBase):
     def efiarch(self):
         if not self._efiarch:
             # for most things, we want them named boot$efiarch
-            efiarch = {"aarch64": "AA64"}
+            efiarch = {"aarch64": "aa64"}
             self._efiarch = efiarch[dnf.rpm.basearch(hawkey.detect_arch())]
         return self._efiarch
 
     def __copy_efi_files(self, isodir):
         fail = False
-        files = [("/boot/efi/EFI/*/shim%s.efi" % (self.efiarch.lower(),), "/EFI/BOOT/BOOT%s.EFI" % (self.efiarch,), True),
-                 ("/boot/efi/EFI/*/gcd%s.efi" % (self.efiarch.lower(),), "/EFI/BOOT/grub%s.efi" % (self.efiarch.lower(),), True),
-                 ("/boot/efi/EFI/*/fonts/unicode.pf2", "/EFI/BOOT/fonts/", True),
+        files = [("/usr/share/shin/shim%s.efi" % (self.efiarch,), "/EFI/BOOT/BOOT%s.EFI" % (self.efiarch,), True),
+                 ("/usr/share/grub2-efi/grubcd.efi", "/EFI/BOOT/grub%s.efi" % (self.efiarch,), True),
+                 ("/boot/grub2/fonts/unicode.pf2", "/EFI/BOOT/fonts/", True),
                 ]
         makedirs(isodir+"/EFI/BOOT/fonts/")
         for src, dest, required in files:
