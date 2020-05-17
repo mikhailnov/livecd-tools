@@ -476,6 +476,8 @@ class SelinuxConfig(KickstartConfig):
 
         if ksselinux.selinux == ksconstants.SELINUX_DISABLED:
             return
+        if os.getenv("LIVECD_CREATOR_NO_SELINUX_LABELLING") is not None:
+            return
 
         try:
             rc = subprocess.call(['setfiles', '-p', '-e', '/proc',
