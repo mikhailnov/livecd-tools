@@ -747,7 +747,7 @@ menu end
 
     def __get_basic_efi_config(self, **args):
         return """
-set default="1"
+set default="0"
 
 function load_video {
   insmod efi_gop
@@ -809,23 +809,19 @@ search --no-floppy --set=root -l '%(isolabel)s'
             # we don't support xen kernels
             if os.path.exists("%s/EFI/BOOT/xen%d.gz" %(isodir, index)):
                 continue
-            cfg += """menuentry 'Boot from local drive' {
-	reboot
-}
-"""
+
             cfg += self.__get_efi_image_stanza(fslabel = self.fslabel,
                                                liveargs = kernel_options,
                                                long = "Start " + long,
                                                extra = "rhgb splash=silent logo.nologo", index = index)
             cfg += self.__get_efi_image_stanza(fslabel = self.fslabel,
                                                liveargs = kernel_options,
-                                               long = "Install " + long,
-                                               extra = "install rhgb splash=silent logo.nologo", index = index)
-            cfg += self.__get_efi_image_stanza(fslabel = self.fslabel,
-                                               liveargs = kernel_options,
-                                               long = "Install " + long + " in basic graphics mode",
-                                               extra = "install nomodeset plymouth.enable=0", index = index)
-
+                                               long = "Start " + long + "in basic graphics mode",
+                                               extra = "nomodeset plymouth.enable=0", index = index)
+            cfg += """menuentry 'Boot from local drive' {
+	reboot
+}
+"""
             break
 
         return cfg
