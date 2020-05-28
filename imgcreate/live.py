@@ -885,7 +885,6 @@ class ppcLiveImageCreator(LiveImageCreatorBase):
             return { "32" : False, "64" : True }
 
     def __copy_kernel_and_initramfs(self, destdir, version):
-        isDracut = False
         bootdir = self._instroot + "/boot"
 
         makedirs(destdir)
@@ -896,11 +895,13 @@ class ppcLiveImageCreator(LiveImageCreatorBase):
         if os.path.exists(bootdir + "/initramfs-" + version + ".img"):
             shutil.copyfile(bootdir + "/initramfs-" + version + ".img",
                             destdir + "/initrd.img")
-            isDracut = True
         else:
             shutil.copyfile(bootdir + "/initrd-" + version + ".img",
                             destdir + "/initrd.img")
 
+        # assume that dracut is always used in ROSA
+        # dracut is patched to make initrd, not initramfs
+        isDracut = True
         return isDracut
 
     def __get_basic_yaboot_config(self, **args):
