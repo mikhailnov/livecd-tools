@@ -800,10 +800,6 @@ search --no-floppy --set=root -l '%(isolabel)s'
             # we don't support xen kernels
             if os.path.exists("%s/EFI/BOOT/xen%d.gz" %(isodir, index)):
                 continue
-            cfg += """menuentry 'Boot from local drive' {
-	reboot
-}
-"""
 
             cfg += self.__get_efi_image_stanza(fslabel = self.fslabel,
                                                liveargs = kernel_options,
@@ -811,13 +807,12 @@ search --no-floppy --set=root -l '%(isolabel)s'
                                                extra = "rhgb splash=silent logo.nologo", index = index)
             cfg += self.__get_efi_image_stanza(fslabel = self.fslabel,
                                                liveargs = kernel_options,
-                                               long = "Install " + self.product,
-                                               extra = "install rhgb splash=silent logo.nologo", index = index)
-            cfg += self.__get_efi_image_stanza(fslabel = self.fslabel,
-                                               liveargs = kernel_options,
-                                               long = "Install " + self.product + " in basic graphics mode",
-                                               extra = "install nomodeset plymouth.enable=0", index = index)
-
+                                               long = "Start " + self.product + " in basic graphics mode",
+                                               extra = "nomodeset plymouth.enable=0", index = index)
+            cfg += """menuentry 'Boot from local drive' {
+	reboot
+}
+"""
             break
 
         return cfg
@@ -1134,7 +1129,7 @@ class aarch64LiveImageCreator(LiveImageCreatorBase):
 
     def __get_basic_efi_config(self, **args):
         return """
-set default="1"
+set default="0"
 
 function load_video {
   insmod efi_gop
