@@ -434,12 +434,12 @@ class x86LiveImageCreator(LiveImageCreatorBase):
 
     def __copy_syslinux_background(self, isodest):
         background_path = self._instroot + \
-                          "/usr/share/anaconda/boot/syslinux-vesa-splash.jpg"
+                          "/usr/share/gfxboot/themes/Rosa-EE/splash.jpg"
 
         if not os.path.exists(background_path):
-            # fallback to F13 location
+            # fallback to default Fedora/RH location
             background_path = self._instroot + \
-                              "/usr/lib/anaconda-runtime/syslinux-vesa-splash.jpg"
+                              "/usr/share/anaconda/boot/syslinux-vesa-splash.jpg"
 
             if not os.path.exists(background_path):
                 return False
@@ -493,30 +493,27 @@ class x86LiveImageCreator(LiveImageCreatorBase):
 default %(menu)s
 timeout %(timeout)d
 menu background %(background)s
-menu autoboot Starting %(title)s in # second{,s}. Press any key to interrupt.
+menu autoboot Starting in # second{,s}. Press any key to interrupt.
 
-menu clear
+#menu clear
 menu title %(title)s
-menu vshift 8
-menu rows 18
-menu margin 8
+#menu vshift 8
+#menu rows 18
+#menu margin 8
 #menu hidden
-menu helpmsgrow 15
-menu tabmsgrow 13
+#menu helpmsgrow 15
+#menu tabmsgrow 13
 
-menu color border * #00000000 #00000000 none
-menu color sel 0 #ffffffff #00000000 none
-menu color title 0 #ff7ba3d0 #00000000 none
-menu color tabmsg 0 #ff3a6496 #00000000 none
-menu color unsel 0 #84b8ffff #00000000 none
-menu color hotsel 0 #84b8ffff #00000000 none
-menu color hotkey 0 #ffffffff #00000000 none
-menu color help 0 #ffffffff #00000000 none
-menu color scrollbar 0 #ffffffff #ff355594 none
-menu color timeout 0 #ffffffff #00000000 none
-menu color timeout_msg 0 #ffffffff #00000000 none
-menu color cmdmark 0 #84b8ffff #00000000 none
-menu color cmdline 0 #ffffffff #00000000 none
+menu color border 0 #ffffffff #00000000
+menu color sel 7 #ffffffff #ff000000
+menu color title 0 #ffffffff #00000000
+menu color tabmsg 0 #ffffffff #00000000
+menu color unsel 0 #ffffffff #00000000
+menu color hotsel 0 #ff000000 #ffffffff
+menu color hotkey 7 #ffffffff #ff000000
+menu color timeout_msg 0 #ffffffff #00000000
+menu color timeout 0 #ffffffff #00000000
+menu color cmdline 0 #ffffffff #00000000
 
 menu tabmsg Press Tab for full configuration options on menu items.
 menu separator
@@ -597,7 +594,7 @@ menu separator
                                            liveargs = kern_opts,
                                            long = "Start " + long + " in ^basic graphics mode.",
                                            short = "basic" + index,
-                                           extra = "nomodeset",
+                                           extra = "nomodeset xdriver=vesa nokmsboot plymouth.enable=0",
                                            help = "Try this option out if you're having trouble starting.",
                                            index = index))
 
@@ -721,8 +718,10 @@ menu end
                  # XXX gcdia32.efi does not exist yet in ROSA
                  ("/boot/efi/EFI/*/gcdia32.efi", "/EFI/BOOT/grubia32.efi", False),
                  ("/boot/grub2/fonts/unicode.pf2", "/EFI/BOOT/fonts/", True),
+                 ("/boot/grub2/themes/rosa/*", "/EFI/BOOT/themes/rosa/", True),
                 ]
         makedirs(isodir+"/EFI/BOOT/fonts/")
+        makedirs(isodir+"/EFI/BOOT/themes/rosa/")
         for src, dest, required in files:
             src_glob = glob.glob(self._instroot+src)
             if not src_glob:
@@ -736,28 +735,38 @@ menu end
 
     def __get_basic_efi_config(self, **args):
         return """
-set default="1"
+set default="0"
 
 function load_video {
   insmod efi_gop
   insmod efi_uga
-  insmod video_bochs
-  insmod video_cirrus
-  insmod all_video
 }
 
 load_video
 set gfxpayload=keep
 insmod gzio
 insmod part_gpt
+insmod part_msdos
 insmod ext2
+insmod iso9660
+
+set gfxmode=1024x768,1024x600,800x600,640x480
+insmod gfxterm
+insmod gettext
+terminal_output gfxterm
+insmod gfxmenu
+loadfont /EFI/BOOT/themes/rosa/dejavu_sans_bold_14.pf2
+loadfont /EFI/BOOT/themes/rosa/dejavu_sans_mono_11.pf2
+loadfont /EFI/BOOT/themes/rosa/terminal_font_11.pf2
+insmod png
+set theme=/EFI/BOOT/themes/rosa/theme.txt
+export theme
+background_image -m stretch /EFI/BOOT/themes/rosa/terminal_background.png
 
 set timeout=%(timeout)d
-### END /etc/grub.d/00_header ###
 
 search --no-floppy --set=root -l '%(isolabel)s'
 
-### BEGIN /etc/grub.d/10_linux ###
 """ %args
 
     def __get_efi_image_stanza(self, **args):
@@ -765,7 +774,7 @@ search --no-floppy --set=root -l '%(isolabel)s'
             args["rootlabel"] = "live:LABEL=%(fslabel)s" % args
         else:
             args["rootlabel"] = "CDLABEL=%(fslabel)s" % args
-        return """menuentry '%(long)s' --class fedora --class gnu-linux --class gnu --class os {
+        return """menuentry '%(long)s' --class rosa --class gnu-linux --class gnu --class os {
 	linuxefi /isolinux/vmlinuz%(index)s root=%(rootlabel)s %(liveargs)s %(extra)s
 	initrdefi /isolinux/initrd%(index)s.img
 }
@@ -783,25 +792,24 @@ search --no-floppy --set=root -l '%(isolabel)s'
             # we don't support xen kernels
             if os.path.exists("%s/EFI/BOOT/xen%d.gz" %(isodir, index)):
                 continue
+
             cfg += self.__get_efi_image_stanza(fslabel = self.fslabel,
                                                liveargs = kernel_options,
                                                long = "Start " + self.product,
-                                               extra = "", index = index)
+                                               extra = "rhgb splash=silent logo.nologo", index = index)
+            cfg += self.__get_efi_image_stanza(fslabel = self.fslabel,
+                                               liveargs = kernel_options,
+                                               long = "Start " + self.product + " in basic graphics mode",
+                                               extra = "nomodeset plymouth.enable=0", index = index)
             if checkisomd5:
                 cfg += self.__get_efi_image_stanza(fslabel = self.fslabel,
                                                    liveargs = kernel_options,
                                                    long = "Test this media & start " + self.product,
                                                    extra = "rd.live.check",
                                                    index = index)
-            cfg += """
-submenu 'Troubleshooting -->' {
-"""
-            cfg += self.__get_efi_image_stanza(fslabel = self.fslabel,
-                                               liveargs = kernel_options,
-                                               long = "Start " + self.product + " in basic graphics mode",
-                                               extra = "nomodeset", index = index)
-
-            cfg+= """}
+            cfg += """menuentry 'Boot from local drive' {
+	reboot
+}
 """
             break
 
@@ -832,8 +840,6 @@ submenu 'Troubleshooting -->' {
         # add macboot data
         subprocess.call(["mkefiboot", "-a", isodir + "/EFI/BOOT",
                          isodir + "/isolinux/macboot.img", "-l", self.product,
-                         "-n", "/usr/share/pixmaps/bootloader/fedora-media.vol",
-                         "-i", "/usr/share/pixmaps/bootloader/fedora.icns",
                          "-p", self.product])
 
     def _configure_bootloader(self, isodir):
@@ -1103,8 +1109,10 @@ class aarch64LiveImageCreator(LiveImageCreatorBase):
         files = [("/boot/efi/EFI/*/shim%s.efi" % (self.efiarch.lower(),), "/EFI/BOOT/BOOT%s.EFI" % (self.efiarch,), True),
                  ("/usr/share/grub2-efi/grubcd.efi", "/EFI/BOOT/grub%s.efi" % (self.efiarch.lower(),), True),
                  ("/boot/grub2/fonts/unicode.pf2", "/EFI/BOOT/fonts/", True),
+                 ("/boot/grub2/themes/rosa/*", "/EFI/BOOT/themes/rosa/", True),
                 ]
         makedirs(isodir+"/EFI/BOOT/fonts/")
+        makedirs(isodir+"/EFI/BOOT/themes/rosa/")
         for src, dest, required in files:
             src_glob = glob.glob(self._instroot+src)
             if not src_glob:
@@ -1117,29 +1125,40 @@ class aarch64LiveImageCreator(LiveImageCreatorBase):
         return fail
 
     def __get_basic_efi_config(self, **args):
+        # code is uselessly (?) duplicated, https://github.com/livecd-tools/livecd-tools/issues/195
         return """
-set default="1"
+set default="0"
 
 function load_video {
   insmod efi_gop
   insmod efi_uga
-  insmod video_bochs
-  insmod video_cirrus
-  insmod all_video
 }
 
 load_video
 set gfxpayload=keep
 insmod gzio
 insmod part_gpt
+insmod part_msdos
 insmod ext2
+insmod iso9660
+
+set gfxmode=1024x768,1024x600,800x600,640x480
+insmod gfxterm
+insmod gettext
+terminal_output gfxterm
+insmod gfxmenu
+loadfont /EFI/BOOT/themes/rosa/dejavu_sans_bold_14.pf2
+loadfont /EFI/BOOT/themes/rosa/dejavu_sans_mono_11.pf2
+loadfont /EFI/BOOT/themes/rosa/terminal_font_11.pf2
+insmod png
+set theme=/EFI/BOOT/themes/rosa/theme.txt
+export theme
+background_image -m stretch /EFI/BOOT/themes/rosa/terminal_background.png
 
 set timeout=%(timeout)d
-### END /etc/grub.d/00_header ###
 
 search --no-floppy --set=root -l '%(isolabel)s'
 
-### BEGIN /etc/grub.d/10_linux ###
 """ %args
 
     def __get_efi_image_stanza(self, **args):
@@ -1164,22 +1183,20 @@ search --no-floppy --set=root -l '%(isolabel)s'
             cfg += self.__get_efi_image_stanza(fslabel = self.fslabel,
                                                liveargs = kernel_options,
                                                long = "Start " + self.product,
-                                               extra = "", index = index)
+                                               extra = "rhgb splash=silent logo.nologo", index = index)
+            cfg += self.__get_efi_image_stanza(fslabel = self.fslabel,
+                                               liveargs = kernel_options,
+                                               long = "Start " + self.product + " in basic graphics mode",
+                                               extra = "nomodeset plymouth.enable=0", index = index)
             if checkisomd5:
                 cfg += self.__get_efi_image_stanza(fslabel = self.fslabel,
                                                    liveargs = kernel_options,
                                                    long = "Test this media & start " + self.product,
                                                    extra = "rd.live.check",
                                                    index = index)
-            cfg += """
-submenu 'Troubleshooting -->' {
-"""
-            cfg += self.__get_efi_image_stanza(fslabel = self.fslabel,
-                                               liveargs = kernel_options,
-                                               long = "Start " + self.product + " in basic graphics mode",
-                                               extra = "nomodeset", index = index)
-
-            cfg+= """}
+            cfg += """menuentry 'Boot from local drive' {
+	reboot
+}
 """
             break
 
