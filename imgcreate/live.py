@@ -722,8 +722,10 @@ menu end
                  ("/boot/efi/EFI/*/shimia32.efi", "/EFI/BOOT/BOOTIA32.EFI", False),
                  ("/boot/efi/EFI/*/gcdia32.efi", "/EFI/BOOT/grubia32.efi", False),
                  ("/boot/grub2/fonts/unicode.pf2", "/EFI/BOOT/fonts/", True),
+                 ("/boot/grub2/themes/rosa/*", "/EFI/BOOT/themes/rosa/", True),
                 ]
         makedirs(isodir+"/EFI/BOOT/fonts/")
+        makedirs(isodir+"/EFI/BOOT/themes/rosa/")
         for src, dest, required in files:
             src_glob = glob.glob(self._instroot+src)
             if not src_glob:
@@ -741,23 +743,33 @@ set default="1"
 function load_video {
   insmod efi_gop
   insmod efi_uga
-  insmod video_bochs
-  insmod video_cirrus
-  insmod all_video
 }
 
 load_video
 set gfxpayload=keep
 insmod gzio
 insmod part_gpt
+insmod part_msdos
 insmod ext2
+insmod iso9660
+
+set gfxmode=1024x768,1024x600,800x600,640x480
+insmod gfxterm
+insmod gettext
+terminal_output gfxterm
+insmod gfxmenu
+loadfont /EFI/BOOT/themes/rosa/dejavu_sans_bold_14.pf2
+loadfont /EFI/BOOT/themes/rosa/dejavu_sans_mono_11.pf2
+loadfont /EFI/BOOT/themes/rosa/terminal_font_11.pf2
+insmod png
+set theme=/EFI/BOOT/themes/rosa/theme.txt
+export theme
+background_image -m stretch /EFI/BOOT/themes/rosa/terminal_background.png
 
 set timeout=%(timeout)d
-### END /etc/grub.d/00_header ###
 
 search --no-floppy --set=root -l '%(isolabel)s'
 
-### BEGIN /etc/grub.d/10_linux ###
 """ %args
 
     def __get_efi_image_stanza(self, **args):
@@ -765,7 +777,7 @@ search --no-floppy --set=root -l '%(isolabel)s'
             args["rootlabel"] = "live:LABEL=%(fslabel)s" % args
         else:
             args["rootlabel"] = "CDLABEL=%(fslabel)s" % args
-        return """menuentry '%(long)s' --class fedora --class gnu-linux --class gnu --class os {
+        return """menuentry '%(long)s' --class rosa --class gnu-linux --class gnu --class os {
 	linuxefi /isolinux/vmlinuz%(index)s root=%(rootlabel)s %(liveargs)s %(extra)s
 	initrdefi /isolinux/initrd%(index)s.img
 }
@@ -779,30 +791,33 @@ search --no-floppy --set=root -l '%(isolabel)s'
 
         cfg = ""
 
+        if os.path.exists(self._instroot + "/etc/system-release"):
+            long = subprocess.check_output("echo -n `sed 's, release .*$,,g' /etc/system-release`", shell=True)
+        else:
+            long = self.product
+
         for index in range(0, 9):
             # we don't support xen kernels
             if os.path.exists("%s/EFI/BOOT/xen%d.gz" %(isodir, index)):
                 continue
+            cfg += """menuentry 'Boot from local drive' {
+	reboot
+}
+"""
+
             cfg += self.__get_efi_image_stanza(fslabel = self.fslabel,
                                                liveargs = kernel_options,
                                                long = "Start " + self.product,
-                                               extra = "", index = index)
-            if checkisomd5:
-                cfg += self.__get_efi_image_stanza(fslabel = self.fslabel,
-                                                   liveargs = kernel_options,
-                                                   long = "Test this media & start " + self.product,
-                                                   extra = "rd.live.check",
-                                                   index = index)
-            cfg += """
-submenu 'Troubleshooting -->' {
-"""
+                                               extra = "rhgb splash=silent logo.nologo", index = index)
             cfg += self.__get_efi_image_stanza(fslabel = self.fslabel,
                                                liveargs = kernel_options,
-                                               long = "Start " + self.product + " in basic graphics mode",
-                                               extra = "nomodeset", index = index)
+                                               long = "Install " + self.product,
+                                               extra = "install rhgb splash=silent logo.nologo", index = index)
+            cfg += self.__get_efi_image_stanza(fslabel = self.fslabel,
+                                               liveargs = kernel_options,
+                                               long = "Install " + self.product + " in basic graphics mode",
+                                               extra = "install nomodeset plymouth.enable=0", index = index)
 
-            cfg+= """}
-"""
             break
 
         return cfg
