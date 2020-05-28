@@ -730,7 +730,8 @@ menu end
                     logging.error("Missing EFI file (%s)" % (src,))
                     fail = True
             else:
-                shutil.copy(src_glob[0], isodir+dest)
+                for src_file in src_glob:
+                    shutil.copy(src_file, isodir+dest)
         return fail
 
     def __get_basic_efi_config(self, **args):
