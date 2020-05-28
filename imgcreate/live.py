@@ -124,7 +124,7 @@ class LiveImageCreatorBase(LoopImageCreator):
         r = kickstart.get_kernel_args(self.ks)
         if (chrootentitycheck('rhgb', self._instroot) or
             chrootentitycheck('plymouth', self._instroot)):
-            r += " rhgb"
+            r += " rhgb splash=silent logo.nologo"
         return r
 
     def _get_xorrisofs_options(self, isodir):
@@ -250,8 +250,8 @@ class LiveImageCreatorBase(LoopImageCreator):
                          isodir + "/isolinux/efiboot.img"])
         subprocess.call(["mkefiboot", "-a", isodir + "/EFI/BOOT",
                          isodir + "/isolinux/macboot.img", "-l", self.product,
-                         "-n", "/usr/share/pixmaps/bootloader/fedora-media.vol",
-                         "-i", "/usr/share/pixmaps/bootloader/fedora.icns",
+#                         "-n", "/usr/share/pixmaps/bootloader/fedora-media.vol",
+#                         "-i", "/usr/share/pixmaps/bootloader/fedora.icns",
                          "-p", self.product])
 
     def _create_bootconfig(self):
@@ -451,12 +451,12 @@ class x86LiveImageCreator(LiveImageCreatorBase):
 
     def __copy_syslinux_background(self, isodest):
         background_path = self._instroot + \
-                          "/usr/share/anaconda/boot/syslinux-vesa-splash.jpg"
+                          "/usr/share/gfxboot/themes/Rosa-EE/splash.jpg"
 
         if not os.path.exists(background_path):
-            # fallback to F13 location
+            # fallback to default Fedora/RH location
             background_path = self._instroot + \
-                              "/usr/lib/anaconda-runtime/syslinux-vesa-splash.jpg"
+                              "/usr/share/anaconda/boot/syslinux-vesa-splash.jpg"
 
             if not os.path.exists(background_path):
                 return False
@@ -512,28 +512,25 @@ timeout %(timeout)d
 menu background %(background)s
 menu autoboot Starting %(title)s in # second{,s}. Press any key to interrupt.
 
-menu clear
+#menu clear
 menu title %(title)s
-menu vshift 8
-menu rows 18
-menu margin 8
+#menu vshift 8
+#menu rows 18
+#menu margin 8
 #menu hidden
-menu helpmsgrow 15
-menu tabmsgrow 13
+#menu helpmsgrow 15
+#menu tabmsgrow 13
 
-menu color border * #00000000 #00000000 none
-menu color sel 0 #ffffffff #00000000 none
-menu color title 0 #ff7ba3d0 #00000000 none
-menu color tabmsg 0 #ff3a6496 #00000000 none
-menu color unsel 0 #84b8ffff #00000000 none
-menu color hotsel 0 #84b8ffff #00000000 none
-menu color hotkey 0 #ffffffff #00000000 none
-menu color help 0 #ffffffff #00000000 none
-menu color scrollbar 0 #ffffffff #ff355594 none
-menu color timeout 0 #ffffffff #00000000 none
-menu color timeout_msg 0 #ffffffff #00000000 none
-menu color cmdmark 0 #84b8ffff #00000000 none
-menu color cmdline 0 #ffffffff #00000000 none
+menu color border 0 #ffffffff #00000000
+menu color sel 7 #ffffffff #ff000000
+menu color title 0 #ffffffff #00000000
+menu color tabmsg 0 #ffffffff #00000000
+menu color unsel 0 #ffffffff #00000000
+menu color hotsel 0 #ff000000 #ffffffff
+menu color hotkey 7 #ffffffff #ff000000
+menu color timeout_msg 0 #ffffffff #00000000
+menu color timeout 0 #ffffffff #00000000
+menu color cmdline 0 #ffffffff #00000000
 
 menu tabmsg Press Tab for full configuration options on menu items.
 menu separator
@@ -614,7 +611,7 @@ menu separator
                                            liveargs = kern_opts,
                                            long = "Start " + long + " in ^basic graphics mode.",
                                            short = "basic" + index,
-                                           extra = "nomodeset",
+                                           extra = "nomodeset xdriver=vesa nokmsboot plymouth.enable=0",
                                            help = "Try this option out if you're having trouble starting.",
                                            index = index))
 
@@ -731,7 +728,7 @@ menu end
         files = [("/boot/efi/EFI/*/BOOT%s.efi" % (self.efiarch,), "/EFI/BOOT/BOOT%s.EFI" % (self.efiarch,), True),
                  ("/usr/share/grub2-efi/grubcd.efi", "/EFI/BOOT/grub%s.efi" % (self.efiarch,), True),
                  ("/boot/grub2/fonts/unicode.pf2", "/EFI/BOOT/fonts/", True),
-                 ("/boot/grub2/themes/rosa/*", "/EFI/BOOT/themes/rosa/"),
+                 ("/boot/grub2/themes/rosa/*", "/EFI/BOOT/themes/rosa/", True),
                 ]
         makedirs(isodir+"/EFI/BOOT/fonts/")
         makedirs(isodir+"/EFI/BOOT/themes/rosa/")
@@ -812,11 +809,11 @@ search --no-floppy --set=root -l '%(isolabel)s'
 
             cfg += self.__get_efi_image_stanza(fslabel = self.fslabel,
                                                liveargs = kernel_options,
-                                               long = "Start " + long,
+                                               long = "Start " + self.product,
                                                extra = "rhgb splash=silent logo.nologo", index = index)
             cfg += self.__get_efi_image_stanza(fslabel = self.fslabel,
                                                liveargs = kernel_options,
-                                               long = "Start " + long + "in basic graphics mode",
+                                               long = "Start " + self.product + "in basic graphics mode",
                                                extra = "nomodeset plymouth.enable=0", index = index)
             cfg += """menuentry 'Boot from local drive' {
 	reboot
