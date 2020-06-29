@@ -260,5 +260,5 @@ def do_nss_sss_hack():
     return hack
 
 if __name__ == "__main__":
-    hack = do_nss_sss_hack()
+    #hack = do_nss_sss_hack()
     sys.exit(main())
