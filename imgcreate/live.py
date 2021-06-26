@@ -398,10 +398,7 @@ class x86LiveImageCreator(LiveImageCreatorBase):
         return options
 
     def _get_required_packages(self):
-        return ["grub2-efi-x64", "grub2-efi-x64-cdboot", "shim-x64"] \
-               + ["grub2-efi-ia32", "grub2-efi-ia32-cdboot", "shim-ia32"] \
-               + ["syslinux"] \
-               + LiveImageCreatorBase._get_required_packages(self)
+        return LiveImageCreatorBase._get_required_packages(self)
 
     def _get_isolinux_stanzas(self, isodir):
         return ""
@@ -846,8 +843,7 @@ class ppcLiveImageCreator(LiveImageCreatorBase):
                  "-hfs-bless", isodir + "/ppc/mac"]
 
     def _get_required_packages(self):
-        return ["yaboot"] + \
-               LiveImageCreatorBase._get_required_packages(self)
+        return LiveImageCreatorBase._get_required_packages(self)
 
     def _get_excluded_packages(self):
         # kind of hacky, but exclude memtest86+ on ppc so it can stay in cfg
@@ -1049,8 +1045,7 @@ class aarch64LiveImageCreator(LiveImageCreatorBase):
         return options
 
     def _get_required_packages(self):
-        return ["grub2-efi-aa64", "grub2-efi-aa64-cdboot", "shim-aa64"] \
-               + LiveImageCreatorBase._get_required_packages(self)
+        return LiveImageCreatorBase._get_required_packages(self)
 
     def __copy_kernel_and_initramfs(self, isodir, version, index):
         bootdir = self._instroot + "/boot"
