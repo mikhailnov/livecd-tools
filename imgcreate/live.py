@@ -714,10 +714,13 @@ menu end
         """
         fail = False
         files = [("/boot/efi/EFI/*/shim%s.efi" % (self.efiarch.lower(),), "/EFI/BOOT/BOOT%s.EFI" % (self.efiarch,), True),
-                 ("/boot/efi/EFI/*/gcd%s.efi" % (self.efiarch.lower(),), "/EFI/BOOT/grub%s.efi" % (self.efiarch.lower(),), True),
+                 # XXX grubcd.efi probably should contain EFI arch in its name to make 32 bit EFI possible on x86_64 (?)
+                 # Or will 32 bit shim be able to load 64 bit grub?
+                 ("/usr/share/grub2-efi/grubcd.efi", "/EFI/BOOT/grub%s.efi" % (self.efiarch.lower(),), True),
                  ("/boot/efi/EFI/*/shimia32.efi", "/EFI/BOOT/BOOTIA32.EFI", False),
+                 # XXX gcdia32.efi does not exist yet in ROSA
                  ("/boot/efi/EFI/*/gcdia32.efi", "/EFI/BOOT/grubia32.efi", False),
-                 ("/boot/efi/EFI/*/fonts/unicode.pf2", "/EFI/BOOT/fonts/", True),
+                 ("/boot/grub2/fonts/unicode.pf2", "/EFI/BOOT/fonts/", True),
                 ]
         makedirs(isodir+"/EFI/BOOT/fonts/")
         for src, dest, required in files:
@@ -1098,8 +1101,8 @@ class aarch64LiveImageCreator(LiveImageCreatorBase):
     def __copy_efi_files(self, isodir):
         fail = False
         files = [("/boot/efi/EFI/*/shim%s.efi" % (self.efiarch.lower(),), "/EFI/BOOT/BOOT%s.EFI" % (self.efiarch,), True),
-                 ("/boot/efi/EFI/*/gcd%s.efi" % (self.efiarch.lower(),), "/EFI/BOOT/grub%s.efi" % (self.efiarch.lower(),), True),
-                 ("/boot/efi/EFI/*/fonts/unicode.pf2", "/EFI/BOOT/fonts/", True),
+                 ("/usr/share/grub2-efi/grubcd.efi", "/EFI/BOOT/grub%s.efi" % (self.efiarch.lower(),), True),
+                 ("/boot/grub2/fonts/unicode.pf2", "/EFI/BOOT/fonts/", True),
                 ]
         makedirs(isodir+"/EFI/BOOT/fonts/")
         for src, dest, required in files:
